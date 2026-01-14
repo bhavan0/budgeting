@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using BudgetingBE.Domain.Repositories;
 using BudgetingBE.Infrastructure.Data;
 using BudgetingBE.Infrastructure.Repositories;
+using BudgetingBE.Infrastructure.Services;
 
 namespace BudgetingBE.Infrastructure;
 
@@ -16,8 +17,17 @@ public static class DependencyInjection
                 options.UseNpgsql(connectionString));
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
-            services.AddScoped<ITodoRepository, TodoRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
+            services.AddScoped<ICategoryRepository, CategoryRepository>();
+            services.AddScoped<ITransactionRepository, TransactionRepository>();
         }
+
+        // Register auth services
+        services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddScoped<IJwtService, JwtService>();
+        
+        // Register AI services
+        services.AddHttpClient<IAiService, OpenRouterAiService>();
 
         return services;
     }

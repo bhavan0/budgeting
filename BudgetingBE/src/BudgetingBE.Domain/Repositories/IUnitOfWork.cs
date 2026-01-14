@@ -2,6 +2,8 @@ namespace BudgetingBE.Domain.Repositories;
 
 public interface IUnitOfWork : IDisposable
 {
-    ITodoRepository Todos { get; }
+    IUserRepository Users { get; }
+    ICategoryRepository Categories { get; }
+    ITransactionRepository Transactions { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

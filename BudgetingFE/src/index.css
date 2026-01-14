@@ -1,11 +1,78 @@
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
+@source "../index.html";
+@source "./**/*.{js,ts,jsx,tsx}";
+
+/* Import Outfit font for modern fintech look */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100 min-h-screen selection:bg-indigo-500/30 selection:text-indigo-200;
+  /* Subtle luxurious background mesh */
+  background-image: 
+    radial-gradient(circle at 15% 50%, rgba(79, 70, 229, 0.08), transparent 25%), 
+    radial-gradient(circle at 85% 30%, rgba(236, 72, 153, 0.08), transparent 25%);
+  background-attachment: fixed;
+}
+
+/* Glass Card Utility */
+.glass-card {
+  @apply bg-slate-900/60 backdrop-blur-xl border border-slate-800/50 shadow-xl shadow-black/5;
+}
+
+.glass-card-hover {
+  @apply hover:bg-slate-800/60 hover:border-slate-700/50 transition-all duration-300;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+}
+
+/* Mobile safe area */
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+/* Input autofill fix for dark mode */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active{
+    -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Input focus styles */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+}
+
+/* Animation for loading states */
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

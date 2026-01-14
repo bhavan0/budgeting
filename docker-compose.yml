@@ -19,6 +19,8 @@ services:
     build:
       context: ./BudgetingBE
       dockerfile: Dockerfile
+    env_file:
+      - .env.local
     ports:
       - "5008:8080"
     environment:
