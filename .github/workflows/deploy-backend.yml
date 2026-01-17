@@ -34,7 +34,10 @@ jobs:
           context: ./BudgetingBE
           file: ./BudgetingBE/Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+            ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          no-cache: true
 
       - name: Log in to Azure
         uses: azure/login@v1
@@ -51,11 +54,11 @@ jobs:
               --name ${{ env.CONTAINER_APP_NAME }} \
               --resource-group ${{ env.RESOURCE_GROUP }} \
               --secrets "neon-conn-str=${{ secrets.NEON_CONNECTION_STRING }}"
-            # Then update the image
+            # Update with unique image tag to force pull
             az containerapp update \
               --name ${{ env.CONTAINER_APP_NAME }} \
               --resource-group ${{ env.RESOURCE_GROUP }} \
-              --image docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest \
+              --image docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
               --set-env-vars "ConnectionStrings__DefaultConnection=secretref:neon-conn-str"
           else
             echo "Creating new container app..."
@@ -63,7 +66,7 @@ jobs:
               --name ${{ env.CONTAINER_APP_NAME }} \
               --resource-group ${{ env.RESOURCE_GROUP }} \
               --environment ${{ env.CONTAINER_APP_ENV }} \
-              --image docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest \
+              --image docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
               --target-port 8080 \
               --ingress external \
               --secrets "neon-conn-str=${{ secrets.NEON_CONNECTION_STRING }}" \
