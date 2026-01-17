@@ -45,7 +45,8 @@ jobs:
         with:
           containerAppName: ${{ env.CONTAINER_APP_NAME }}
           resourceGroup: ${{ env.RESOURCE_GROUP }}
+          containerAppEnvironment: cae-budgeting-free
           imageToDeploy: docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
           targetPort: 8080
           environmentVariables: |
-            ConnectionStrings__DefaultConnection=secretref:neon-connection-string
+            ConnectionStrings__DefaultConnection=${{ secrets.NEON_CONNECTION_STRING }}
