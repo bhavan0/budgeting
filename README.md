@@ -2,17 +2,27 @@
 
 A modern, full-stack budgeting PWA utilizing AI to provide financial insights and trend analysis. Built with the latest web technologies for speed, reliability, and detailed data visualization.
 
+## 🌐 Live Demo
+
+| Service | URL |
+|---------|-----|
+| **Frontend** | https://polite-island-04cc6960f.4.azurestaticapps.net |
+| **Backend API** | https://ca-budgeting-be.politemushroom-e27ed289.eastus.azurecontainerapps.io |
+| **API Docs (Scalar)** | https://ca-budgeting-be.politemushroom-e27ed289.eastus.azurecontainerapps.io/scalar/v1 |
+
 ## 🚀 Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | React 19, TypeScript, **Vite**, **TailwindCSS 4**, Recharts |
+| **Frontend** | React 19, TypeScript, Vite, TailwindCSS 4, Recharts |
 | **Backend** | .NET 10, Minimal APIs, Entity Framework Core |
-| **Database** | PostgreSQL 17 |
+| **Database** | PostgreSQL (Neon - Serverless) |
 | **AI** | OpenRouter (LLM Integration) |
 | **PWA** | vite-plugin-pwa, Workbox (Offline support, Installable) |
 | **Auth** | JWT (Secure Access Tokens), BCrypt |
 | **Container** | Docker & Docker Compose |
+| **Hosting** | Azure Static Web Apps (FE), Azure Container Apps (BE) |
+| **CI/CD** | GitHub Actions |
 
 ## ✨ Features
 
@@ -24,15 +34,16 @@ A modern, full-stack budgeting PWA utilizing AI to provide financial insights an
 - **🏷️ Custom Categories** - Create personalized categories with distinct colors and icons.
 - **🌙 Dark Mode UI** - Sleek "Fintech Glass" aesthetic with smooth animations.
 
-## 🛠️ Quick Start
+## 🛠️ Local Development
 
 ### Docker (Recommended)
 
 1.  **Configure Environment**:
-    Create a `.env.local` file in the root directory (same level as `docker-compose.yml`) and add your OpenRouter configuration:
+    Create a `.env.local` file in the root directory:
     ```env
     OpenRouter__ApiKey=sk-or-your-key-here
     OpenRouter__Model=nvidia/nemotron-3-nano-30b-a3b:free
+    Jwt__SecretKey=your-secret-key-at-least-32-characters
     ```
 
 2.  **Run Application**:
@@ -45,29 +56,60 @@ A modern, full-stack budgeting PWA utilizing AI to provide financial insights an
     - **Backend API Docs**: http://localhost:5008/scalar/v1
     - **Database**: localhost:5432
 
-### 📲 Testing PWA on Mobile
+## ☁️ Azure Deployment
 
-To test the PWA features (installing to home screen) on your phone while running locally:
+This project is configured for automated deployment to Azure using GitHub Actions.
 
-**Option 1: Local Network (UI Only)**
-1.  Find your Mac's IP: `ipconfig getifaddr en0` (e.g. `192.168.1.15`)
-2.  Open phone browser to: `http://192.168.1.15:4200`
-    *(Note: PWA installation may be disabled on HTTP)*
+### Architecture
 
-**Option 2: Public Tunnel (Full PWA)**
-Use ngrok to create an HTTPS tunnel for full PWA support:
-```bash
-brew install ngrok/ngrok/ngrok
-ngrok http 4200
 ```
-Open the `https://...` link on your phone.
+┌─────────────────────────────────┐
+│     Azure Static Web Apps       │
+│         React Frontend          │
+└───────────────┬─────────────────┘
+                │ HTTPS
+                ▼
+┌─────────────────────────────────┐
+│     Azure Container Apps        │
+│        .NET 10 Backend          │
+└───────────────┬─────────────────┘
+                │
+                ▼
+┌─────────────────────────────────┐
+│       Neon PostgreSQL           │
+│       Serverless Database       │
+└─────────────────────────────────┘
+```
+
+### GitHub Secrets Required
+
+| Secret | Description |
+|--------|-------------|
+| `AZURE_CREDENTIALS` | Service principal JSON from `az ad sp create-for-rbac` |
+| `AZURE_STATIC_WEB_APPS_API_TOKEN` | Deployment token from Azure SWA |
+| `DOCKER_USERNAME` | Docker Hub username |
+| `DOCKER_PASSWORD` | Docker Hub password/token |
+| `NEON_CONNECTION_STRING` | PostgreSQL connection string (ADO.NET format) |
+| `VITE_API_BASE_URL` | Backend URL with `/api` suffix |
+
+### Initial Setup
+
+1. **Install Azure CLI**: `brew install azure-cli`
+2. **Login**: `az login`
+3. **Run Setup Script**: `./setup_azure.sh`
+4. **Add GitHub Secrets** from the script output
+5. **Push to main** to trigger deployment
 
 ## 🔌 API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | `/api/health` | Health check |
+| POST | `/api/auth/register` | Register new user |
 | POST | `/api/auth/login` | Authenticate user |
 | GET | `/api/transactions` | List filtered transactions |
+| POST | `/api/transactions` | Create transaction |
+| GET | `/api/categories` | List categories |
 | GET | `/api/stats/summary` | Get totals and trends |
 | GET | `/api/stats/over-time` | Get daily/monthly history |
 | POST | `/api/ai/chat` | Send message to AI assistant |
@@ -85,3 +127,22 @@ dotnet test
 cd BudgetingFE
 npm run test
 ```
+
+## 📲 Testing PWA on Mobile
+
+**Option 1: Local Network**
+```bash
+ipconfig getifaddr en0  # Get your local IP
+# Open http://<your-ip>:4200 on your phone
+```
+
+**Option 2: ngrok Tunnel (Full PWA)**
+```bash
+brew install ngrok/ngrok/ngrok
+ngrok http 4200
+# Use the HTTPS URL on your phone
+```
+
+## 📄 License
+
+MIT

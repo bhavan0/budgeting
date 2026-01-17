@@ -53,13 +53,18 @@ jobs:
             az containerapp secret set \
               --name ${{ env.CONTAINER_APP_NAME }} \
               --resource-group ${{ env.RESOURCE_GROUP }} \
-              --secrets "neon-conn-str=${{ secrets.NEON_CONNECTION_STRING }}"
+              --secrets \
+                "neon-conn-str=${{ secrets.NEON_CONNECTION_STRING }}" \
+                "openrouter-key=${{ secrets.OPENROUTER_API_KEY }}"
             # Update with unique image tag to force pull
             az containerapp update \
               --name ${{ env.CONTAINER_APP_NAME }} \
               --resource-group ${{ env.RESOURCE_GROUP }} \
               --image docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-              --set-env-vars "ConnectionStrings__DefaultConnection=secretref:neon-conn-str"
+              --set-env-vars \
+                "ConnectionStrings__DefaultConnection=secretref:neon-conn-str" \
+                "OpenRouter__ApiKey=secretref:openrouter-key" \
+                "OpenRouter__Model=${{ secrets.OPENROUTER_MODEL }}"
           else
             echo "Creating new container app..."
             az containerapp create \
@@ -69,8 +74,13 @@ jobs:
               --image docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
               --target-port 8080 \
               --ingress external \
-              --secrets "neon-conn-str=${{ secrets.NEON_CONNECTION_STRING }}" \
-              --env-vars "ConnectionStrings__DefaultConnection=secretref:neon-conn-str"
+              --secrets \
+                "neon-conn-str=${{ secrets.NEON_CONNECTION_STRING }}" \
+                "openrouter-key=${{ secrets.OPENROUTER_API_KEY }}" \
+              --env-vars \
+                "ConnectionStrings__DefaultConnection=secretref:neon-conn-str" \
+                "OpenRouter__ApiKey=secretref:openrouter-key" \
+                "OpenRouter__Model=${{ secrets.OPENROUTER_MODEL }}"
           fi
 
       - name: Get Container App URL
