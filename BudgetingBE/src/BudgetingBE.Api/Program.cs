@@ -11,9 +11,12 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.WithOrigins(
+                "http://localhost:4200",
+                "https://polite-island-04cc6960f.4.azurestaticapps.net"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
@@ -65,12 +68,9 @@ if (!string.IsNullOrEmpty(connectionString))
 // Enable CORS
 app.UseCors();
 
-// OpenAPI + Scalar API Reference (Development only)
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-    app.MapScalarApiReference();
-}
+// OpenAPI + Scalar API Reference
+app.MapOpenApi();
+app.MapScalarApiReference();
 
 // Authentication & Authorization
 app.UseAuthentication();
