@@ -46,10 +46,17 @@ jobs:
           # Check if container app exists
           if az containerapp show --name ${{ env.CONTAINER_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null; then
             echo "Updating existing container app..."
+            # Update secrets first
+            az containerapp secret set \
+              --name ${{ env.CONTAINER_APP_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --secrets "neon-conn-str=${{ secrets.NEON_CONNECTION_STRING }}"
+            # Then update the image
             az containerapp update \
               --name ${{ env.CONTAINER_APP_NAME }} \
               --resource-group ${{ env.RESOURCE_GROUP }} \
-              --image docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+              --image docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest \
+              --set-env-vars "ConnectionStrings__DefaultConnection=secretref:neon-conn-str"
           else
             echo "Creating new container app..."
             az containerapp create \
@@ -62,3 +69,8 @@ jobs:
               --secrets "neon-conn-str=${{ secrets.NEON_CONNECTION_STRING }}" \
               --env-vars "ConnectionStrings__DefaultConnection=secretref:neon-conn-str"
           fi
+
+      - name: Get Container App URL
+        run: |
+          URL=$(az containerapp show --name ${{ env.CONTAINER_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv)
+          echo "Backend deployed to: https://$URL"
