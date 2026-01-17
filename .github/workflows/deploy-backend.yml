@@ -12,6 +12,7 @@ env:
   IMAGE_NAME: budgeting-be
   CONTAINER_APP_NAME: ca-budgeting-be
   RESOURCE_GROUP: rg-budgeting-free
+  CONTAINER_APP_ENV: cae-budgeting-free
 
 jobs:
   build-and-deploy:
@@ -41,12 +42,23 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy to Container App
-        uses: azure/container-apps-deploy-action@v1
-        with:
-          containerAppName: ${{ env.CONTAINER_APP_NAME }}
-          resourceGroup: ${{ env.RESOURCE_GROUP }}
-          containerAppEnvironment: cae-budgeting-free
-          imageToDeploy: docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-          targetPort: 8080
-          environmentVariables: |
-            ConnectionStrings__DefaultConnection=${{ secrets.NEON_CONNECTION_STRING }}
+        run: |
+          # Check if container app exists
+          if az containerapp show --name ${{ env.CONTAINER_APP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} 2>/dev/null; then
+            echo "Updating existing container app..."
+            az containerapp update \
+              --name ${{ env.CONTAINER_APP_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --image docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          else
+            echo "Creating new container app..."
+            az containerapp create \
+              --name ${{ env.CONTAINER_APP_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --environment ${{ env.CONTAINER_APP_ENV }} \
+              --image docker.io/${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_NAME }}:latest \
+              --target-port 8080 \
+              --ingress external \
+              --secrets "neon-conn-str=${{ secrets.NEON_CONNECTION_STRING }}" \
+              --env-vars "ConnectionStrings__DefaultConnection=secretref:neon-conn-str"
+          fi
