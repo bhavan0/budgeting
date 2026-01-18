@@ -192,7 +192,7 @@ export function CategoriesPage() {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleCloseModal} />
-          <div className="relative w-full sm:max-w-md bg-slate-800 border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl p-6 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-full sm:max-w-md bg-slate-800 border-t sm:border border-slate-700 rounded-t-3xl sm:rounded-2xl p-6 max-h-[85vh] sm:max-h-[90vh] overflow-y-auto mb-20 sm:mb-0">
             <div className="sm:hidden w-12 h-1 bg-slate-600 rounded-full mx-auto mb-4" />
             <h2 className="text-xl font-bold text-white mb-6">
               {editingCategory ? 'Edit Category' : 'Add Category'}

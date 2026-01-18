@@ -111,7 +111,7 @@ export function TransactionModal({ isOpen, onClose, transaction }: TransactionMo
       />
 
       {/* Modal */}
-      <div className="relative w-full sm:max-w-md bg-gradient-to-br from-slate-800 to-slate-900 border-t sm:border border-slate-700/50 rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div className="relative w-full sm:max-w-md bg-gradient-to-br from-slate-800 to-slate-900 border-t sm:border border-slate-700/50 rounded-t-3xl sm:rounded-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto shadow-2xl mb-20 sm:mb-0">
         {/* Handle for mobile */}
         <div className="sm:hidden w-12 h-1.5 bg-slate-600 rounded-full mx-auto mt-3" />
 
