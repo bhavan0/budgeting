@@ -6,16 +6,29 @@ namespace BudgetingBE.Infrastructure.Services;
 public class GoogleAuthService : IGoogleAuthService
 {
     private readonly HttpClient _httpClient;
-    private readonly string _clientId;
+    private readonly string? _clientId;
+    private readonly ILogger<GoogleAuthService> _logger;
 
-    public GoogleAuthService(HttpClient httpClient, IConfiguration configuration)
+    public GoogleAuthService(HttpClient httpClient, IConfiguration configuration, ILogger<GoogleAuthService> logger)
     {
         _httpClient = httpClient;
-        _clientId = configuration["Google:ClientId"] ?? throw new ArgumentNullException("Google:ClientId is not configured");
+        _logger = logger;
+        _clientId = configuration["Google:ClientId"];
+        
+        if (string.IsNullOrEmpty(_clientId))
+        {
+            _logger.LogWarning("Google:ClientId is not configured. Google Sign-In will not work.");
+        }
     }
 
     public async Task<GoogleUserInfo?> ValidateGoogleTokenAsync(string idToken, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrEmpty(_clientId))
+        {
+            _logger.LogError("Cannot validate Google token because Google:ClientId is not configured.");
+            return null;
+        }
+
         try
         {
             // Validate the token using Google's tokeninfo endpoint
@@ -25,6 +38,7 @@ public class GoogleAuthService : IGoogleAuthService
 
             if (!response.IsSuccessStatusCode)
             {
+                _logger.LogWarning("Google token validation failed. Status: {StatusCode}", response.StatusCode);
                 return null;
             }
 
@@ -32,12 +46,14 @@ public class GoogleAuthService : IGoogleAuthService
             
             if (tokenInfo == null)
             {
+                _logger.LogWarning("Google token info is null.");
                 return null;
             }
 
             // Verify the token was issued for our app
             if (tokenInfo.Aud != _clientId)
             {
+                _logger.LogWarning("Google token audience mismatch. Expected: {Expected}, Got: {Actual}", _clientId, tokenInfo.Aud);
                 return null;
             }
 
@@ -47,6 +63,7 @@ public class GoogleAuthService : IGoogleAuthService
                 var expTime = DateTimeOffset.FromUnixTimeSeconds(expUnix);
                 if (expTime < DateTimeOffset.UtcNow)
                 {
+                    _logger.LogWarning("Google token expired.");
                     return null;
                 }
             }
@@ -58,8 +75,9 @@ public class GoogleAuthService : IGoogleAuthService
                 tokenInfo.Picture
             );
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Exception during Google token validation.");
             return null;
         }
     }
