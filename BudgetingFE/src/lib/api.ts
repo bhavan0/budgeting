@@ -52,11 +52,8 @@ async function api<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
 
 // Auth API
 export const authApi = {
-  register: (email: string, password: string) =>
-    api<AuthResponse>('/auth/register', { method: 'POST', body: { email, password } }),
-  
-  login: (email: string, password: string) =>
-    api<AuthResponse>('/auth/login', { method: 'POST', body: { email, password } }),
+  googleLogin: (credential: string) =>
+    api<AuthResponse>('/auth/google', { method: 'POST', body: { credential } }),
   
   me: () => api<User>('/auth/me'),
 };
@@ -145,6 +142,8 @@ export enum TransactionType {
 export interface User {
   id: string;
   email: string;
+  name?: string;
+  profilePictureUrl?: string;
 }
 
 export interface AuthResponse {

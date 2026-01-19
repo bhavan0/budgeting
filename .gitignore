@@ -18,7 +18,6 @@ Thumbs.db
 
 # Environment
 .env
-.env.local
 
 # Database data
 postgres_data/

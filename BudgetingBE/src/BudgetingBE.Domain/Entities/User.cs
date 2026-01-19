@@ -4,7 +4,10 @@ public class User
 {
     public Guid Id { get; set; }
     public required string Email { get; set; }
-    public required string PasswordHash { get; set; }
+    public string? PasswordHash { get; set; }
+    public string? GoogleId { get; set; }
+    public string? Name { get; set; }
+    public string? ProfilePictureUrl { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 

@@ -71,7 +71,7 @@ export function DashboardPage() {
         <div>
           <h2 className="text-slate-400 font-medium text-lg mb-1">{getGreeting()},</h2>
           <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-            {user?.email?.split('@')[0] || 'User'}
+            {user?.name || user?.email?.split('@')[0] || 'User'}
           </h1>
         </div>
         <button

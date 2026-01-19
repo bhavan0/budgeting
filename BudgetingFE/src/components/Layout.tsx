@@ -69,9 +69,9 @@ export function Layout() {
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/50 border border-white/5">
               <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-xs font-bold text-white">
-                {user?.email?.[0].toUpperCase()}
+                {user?.name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase()}
               </div>
-              <span className="text-sm text-slate-300 max-w-[100px] truncate">{user?.email?.split('@')[0]}</span>
+              <span className="text-sm text-slate-300 max-w-[100px] truncate">{user?.name || user?.email?.split('@')[0]}</span>
             </div>
             <button
               onClick={handleLogout}

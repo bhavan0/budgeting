@@ -39,7 +39,7 @@ A modern, full-stack budgeting PWA utilizing AI to provide financial insights an
 ### Docker (Recommended)
 
 1.  **Configure Environment**:
-    Create a `.env.local` file in the root directory:
+    Create a `.env` file in the root directory:
     ```env
     OpenRouter__ApiKey=sk-or-your-key-here
     OpenRouter__Model=nvidia/nemotron-3-nano-30b-a3b:free

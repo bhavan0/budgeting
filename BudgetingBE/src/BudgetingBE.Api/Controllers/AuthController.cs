@@ -13,67 +13,80 @@ namespace BudgetingBE.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IPasswordHasher _passwordHasher;
+    private readonly IGoogleAuthService _googleAuthService;
     private readonly IJwtService _jwtService;
 
-    public AuthController(IUnitOfWork unitOfWork, IPasswordHasher passwordHasher, IJwtService jwtService)
+    public AuthController(IUnitOfWork unitOfWork, IGoogleAuthService googleAuthService, IJwtService jwtService)
     {
         _unitOfWork = unitOfWork;
-        _passwordHasher = passwordHasher;
+        _googleAuthService = googleAuthService;
         _jwtService = jwtService;
     }
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
+    [HttpPost("google")]
+    public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest request, CancellationToken cancellationToken)
     {
-        if (await _unitOfWork.Users.EmailExistsAsync(request.Email, cancellationToken))
+        // Validate the Google ID token
+        var googleUser = await _googleAuthService.ValidateGoogleTokenAsync(request.Credential, cancellationToken);
+        
+        if (googleUser == null)
         {
-            return BadRequest(new { message = "Email already registered" });
+            return Unauthorized(new { message = "Invalid Google token" });
         }
 
-        var user = new User
+        // Check if user exists by Google ID or email
+        var user = await _unitOfWork.Users.GetByEmailAsync(googleUser.Email.ToLowerInvariant(), cancellationToken);
+        
+        bool isNewUser = user == null;
+        
+        if (isNewUser)
         {
-            Id = Guid.NewGuid(),
-            Email = request.Email.ToLowerInvariant(),
-            PasswordHash = _passwordHasher.HashPassword(request.Password)
-        };
+            // Create new user
+            user = new User
+            {
+                Id = Guid.NewGuid(),
+                Email = googleUser.Email.ToLowerInvariant(),
+                GoogleId = googleUser.GoogleId,
+                Name = googleUser.Name,
+                ProfilePictureUrl = googleUser.PictureUrl
+            };
 
-        await _unitOfWork.Users.AddAsync(user, cancellationToken);
+            await _unitOfWork.Users.AddAsync(user, cancellationToken);
 
-        // Create default categories for the user
-        var defaultCategories = GetDefaultCategories(user.Id);
-        foreach (var category in defaultCategories)
-        {
-            await _unitOfWork.Categories.AddAsync(category, cancellationToken);
+            // Create default categories for new users
+            var defaultCategories = GetDefaultCategories(user.Id);
+            foreach (var category in defaultCategories)
+            {
+                await _unitOfWork.Categories.AddAsync(category, cancellationToken);
+            }
+
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
-
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        else
+        {
+            // Update existing user with Google info if not already linked
+            if (string.IsNullOrEmpty(user.GoogleId))
+            {
+                user.GoogleId = googleUser.GoogleId;
+                user.Name = googleUser.Name;
+                user.ProfilePictureUrl = googleUser.PictureUrl;
+                user.UpdatedAt = DateTime.UtcNow;
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+        }
 
         var token = _jwtService.GenerateToken(user);
 
         return Ok(new AuthResponse
         {
             Token = token,
-            User = new UserDto { Id = user.Id, Email = user.Email }
-        });
-    }
-
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
-    {
-        var user = await _unitOfWork.Users.GetByEmailAsync(request.Email.ToLowerInvariant(), cancellationToken);
-
-        if (user == null || !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
-        {
-            return Unauthorized(new { message = "Invalid email or password" });
-        }
-
-        var token = _jwtService.GenerateToken(user);
-
-        return Ok(new AuthResponse
-        {
-            Token = token,
-            User = new UserDto { Id = user.Id, Email = user.Email }
+            User = new UserDto 
+            { 
+                Id = user.Id, 
+                Email = user.Email,
+                Name = user.Name,
+                ProfilePictureUrl = user.ProfilePictureUrl
+            }
         });
     }
 
@@ -87,7 +100,13 @@ public class AuthController : ControllerBase
         var user = await _unitOfWork.Users.GetByIdAsync(userId.Value, cancellationToken);
         if (user == null) return NotFound();
 
-        return Ok(new UserDto { Id = user.Id, Email = user.Email });
+        return Ok(new UserDto 
+        { 
+            Id = user.Id, 
+            Email = user.Email,
+            Name = user.Name,
+            ProfilePictureUrl = user.ProfilePictureUrl
+        });
     }
 
     private Guid? GetUserId()
@@ -118,25 +137,10 @@ public class AuthController : ControllerBase
     }
 }
 
-public record RegisterRequest
+public record GoogleLoginRequest
 {
     [Required]
-    [EmailAddress]
-    public required string Email { get; init; }
-
-    [Required]
-    [MinLength(6)]
-    public required string Password { get; init; }
-}
-
-public record LoginRequest
-{
-    [Required]
-    [EmailAddress]
-    public required string Email { get; init; }
-
-    [Required]
-    public required string Password { get; init; }
+    public required string Credential { get; init; }
 }
 
 public record AuthResponse
@@ -149,4 +153,6 @@ public record UserDto
 {
     public Guid Id { get; init; }
     public required string Email { get; init; }
+    public string? Name { get; init; }
+    public string? ProfilePictureUrl { get; init; }
 }

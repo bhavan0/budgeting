@@ -13,6 +13,7 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
   },
   "dependencies": {
+    "@react-oauth/google": "^0.13.4",
     "@tanstack/react-query": "^5.90.16",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

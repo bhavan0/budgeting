@@ -59,7 +59,8 @@ jobs:
               --set-env-vars \
                 "ConnectionStrings__DefaultConnection=secretref:neon-conn-str" \
                 "OpenRouter__ApiKey=secretref:openrouter-key" \
-                "OpenRouter__Model=${{ secrets.OPENROUTER_MODEL }}"
+                "OpenRouter__Model=${{ secrets.OPENROUTER_MODEL }}" \
+                "Google__ClientId=${{ secrets.GOOGLE_CLIENT_ID }}"
           else
             echo "Creating new container app..."
             az containerapp create \
@@ -75,7 +76,8 @@ jobs:
               --env-vars \
                 "ConnectionStrings__DefaultConnection=secretref:neon-conn-str" \
                 "OpenRouter__ApiKey=secretref:openrouter-key" \
-                "OpenRouter__Model=${{ secrets.OPENROUTER_MODEL }}"
+                "OpenRouter__Model=${{ secrets.OPENROUTER_MODEL }}" \
+                "Google__ClientId=${{ secrets.GOOGLE_CLIENT_ID }}"
           fi
 
       - name: Get Container App URL
