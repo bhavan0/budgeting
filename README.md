@@ -19,7 +19,7 @@ A modern, full-stack budgeting PWA utilizing AI to provide financial insights an
 | **Database** | PostgreSQL (Neon - Serverless) |
 | **AI** | OpenRouter (LLM Integration) |
 | **PWA** | vite-plugin-pwa, Workbox (Offline support, Installable) |
-| **Auth** | JWT (Secure Access Tokens), BCrypt |
+| **Auth** | Google OAuth (Sign in with Google) |
 | **Container** | Docker & Docker Compose |
 | **Hosting** | Azure Static Web Apps (FE), Azure Container Apps (BE) |
 | **CI/CD** | GitHub Actions |
@@ -44,6 +44,8 @@ A modern, full-stack budgeting PWA utilizing AI to provide financial insights an
     OpenRouter__ApiKey=sk-or-your-key-here
     OpenRouter__Model=nvidia/nemotron-3-nano-30b-a3b:free
     Jwt__SecretKey=your-secret-key-at-least-32-characters
+    Google__ClientId=your-google-oauth-client-id.apps.googleusercontent.com
+    VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
     ```
 
 2.  **Run Application**:
@@ -91,6 +93,7 @@ This project is configured for automated deployment to Azure using GitHub Action
 | `DOCKER_PASSWORD` | Docker Hub password/token |
 | `NEON_CONNECTION_STRING` | PostgreSQL connection string (ADO.NET format) |
 | `VITE_API_BASE_URL` | Backend URL with `/api` suffix |
+| `GOOGLE_CLIENT_ID` | Google OAuth Client ID |
 
 ### Initial Setup
 
@@ -105,8 +108,8 @@ This project is configured for automated deployment to Azure using GitHub Action
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/health` | Health check |
-| POST | `/api/auth/register` | Register new user |
-| POST | `/api/auth/login` | Authenticate user |
+| POST | `/api/auth/google` | Sign in with Google |
+| GET | `/api/auth/me` | Get current user |
 | GET | `/api/transactions` | List filtered transactions |
 | POST | `/api/transactions` | Create transaction |
 | GET | `/api/categories` | List categories |
