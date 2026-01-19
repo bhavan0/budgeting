@@ -1,11 +1,6 @@
 name: Deploy Backend
 
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'BudgetingBE/**'
-      - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 
 env:
