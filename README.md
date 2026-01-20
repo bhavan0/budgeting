@@ -19,7 +19,7 @@ A modern, full-stack budgeting PWA utilizing AI to provide financial insights an
 | **Database** | PostgreSQL (Neon - Serverless) |
 | **AI** | OpenRouter (LLM Integration) |
 | **PWA** | vite-plugin-pwa, Workbox (Offline support, Installable) |
-| **Auth** | Google OAuth (Sign in with Google) |
+| **Auth** | Email/Password + Google OAuth (Dual Authentication) |
 | **Container** | Docker & Docker Compose |
 | **Hosting** | Azure Static Web Apps (FE), Azure Container Apps (BE) |
 | **CI/CD** | GitHub Actions |
@@ -108,6 +108,8 @@ This project is configured for automated deployment to Azure using GitHub Action
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/health` | Health check |
+| POST | `/api/auth/register` | Register with email/password |
+| POST | `/api/auth/login` | Sign in with email/password |
 | POST | `/api/auth/google` | Sign in with Google |
 | GET | `/api/auth/me` | Get current user |
 | GET | `/api/transactions` | List filtered transactions |

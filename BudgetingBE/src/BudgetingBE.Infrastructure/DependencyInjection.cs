@@ -25,6 +25,7 @@ public static class DependencyInjection
         // Register auth services
         services.AddHttpClient<IGoogleAuthService, GoogleAuthService>();
         services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<IPasswordService, PasswordService>();
         
         // Register AI services
         services.AddHttpClient<IAiService, OpenRouterAiService>();

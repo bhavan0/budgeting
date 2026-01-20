@@ -55,6 +55,12 @@ export const authApi = {
   googleLogin: (credential: string) =>
     api<AuthResponse>('/auth/google', { method: 'POST', body: { credential } }),
   
+  login: (email: string, password: string) =>
+    api<AuthResponse>('/auth/login', { method: 'POST', body: { email, password } }),
+  
+  register: (email: string, password: string, name: string) =>
+    api<AuthResponse>('/auth/register', { method: 'POST', body: { email, password, name } }),
+  
   me: () => api<User>('/auth/me'),
 };
 

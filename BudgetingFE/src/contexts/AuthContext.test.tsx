@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './AuthContext';
 
@@ -7,6 +8,8 @@ import { AuthProvider, useAuth } from './AuthContext';
 vi.mock('../lib/api', () => ({
   authApi: {
     googleLogin: vi.fn(),
+    login: vi.fn(),
+    register: vi.fn(),
     me: vi.fn(),
   },
 }));
@@ -37,14 +40,45 @@ function createTestQueryClient() {
   });
 }
 
-// Test component that uses useAuth
-function TestConsumer() {
-  const { user, isLoading, isAuthenticated, logout } = useAuth();
+// Test component that uses useAuth with error handling
+function TestConsumer({ 
+  onLogin, 
+  onRegister,
+  onLoginError,
+  onRegisterError 
+}: { 
+  onLogin?: () => void; 
+  onRegister?: () => void;
+  onLoginError?: (error: Error) => void;
+  onRegisterError?: (error: Error) => void;
+}) {
+  const { user, isLoading, isAuthenticated, login, register, logout } = useAuth();
+  
+  const handleLogin = async () => {
+    try {
+      await login('test@example.com', 'password123');
+      onLogin?.();
+    } catch (error) {
+      onLoginError?.(error as Error);
+    }
+  };
+
+  const handleRegister = async () => {
+    try {
+      await register('test@example.com', 'password123', 'Test User');
+      onRegister?.();
+    } catch (error) {
+      onRegisterError?.(error as Error);
+    }
+  };
+
   return (
     <div>
       <span data-testid="loading">{isLoading.toString()}</span>
       <span data-testid="authenticated">{isAuthenticated.toString()}</span>
       <span data-testid="user">{user?.email || 'none'}</span>
+      <button onClick={handleLogin}>Login</button>
+      <button onClick={handleRegister}>Register</button>
       <button onClick={logout}>Logout</button>
     </div>
   );
@@ -151,5 +185,143 @@ describe('AuthContext', () => {
     );
 
     consoleSpy.mockRestore();
+  });
+
+  describe('login', () => {
+    it('calls login API and stores token/user on success', async () => {
+      const user = userEvent.setup();
+      const mockUser = { id: '1', email: 'test@example.com', name: 'Test User' };
+      const mockResponse = { token: 'new-token', user: mockUser };
+
+      const { authApi } = await import('../lib/api');
+      (authApi.login as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse);
+
+      const queryClient = createTestQueryClient();
+      const onLogin = vi.fn();
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <TestConsumer onLogin={onLogin} />
+          </AuthProvider>
+        </QueryClientProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      await act(async () => {
+        await user.click(screen.getByRole('button', { name: 'Login' }));
+      });
+
+      await waitFor(() => {
+        expect(authApi.login).toHaveBeenCalledWith('test@example.com', 'password123');
+      });
+
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('token', 'new-token');
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('user', JSON.stringify(mockUser));
+      expect(screen.getByTestId('user').textContent).toBe('test@example.com');
+    });
+
+    it('calls error handler on API failure', async () => {
+      const user = userEvent.setup();
+      const { authApi } = await import('../lib/api');
+      (authApi.login as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Invalid credentials'));
+
+      const queryClient = createTestQueryClient();
+      const onLoginError = vi.fn();
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <TestConsumer onLoginError={onLoginError} />
+          </AuthProvider>
+        </QueryClientProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      await act(async () => {
+        await user.click(screen.getByRole('button', { name: 'Login' }));
+      });
+
+      await waitFor(() => {
+        expect(onLoginError).toHaveBeenCalledWith(expect.any(Error));
+      });
+      
+      expect(onLoginError.mock.calls[0][0].message).toBe('Invalid credentials');
+    });
+  });
+
+  describe('register', () => {
+    it('calls register API and stores token/user on success', async () => {
+      const user = userEvent.setup();
+      const mockUser = { id: '1', email: 'test@example.com', name: 'Test User' };
+      const mockResponse = { token: 'new-token', user: mockUser };
+
+      const { authApi } = await import('../lib/api');
+      (authApi.register as ReturnType<typeof vi.fn>).mockResolvedValueOnce(mockResponse);
+
+      const queryClient = createTestQueryClient();
+      const onRegister = vi.fn();
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <TestConsumer onRegister={onRegister} />
+          </AuthProvider>
+        </QueryClientProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      await act(async () => {
+        await user.click(screen.getByRole('button', { name: 'Register' }));
+      });
+
+      await waitFor(() => {
+        expect(authApi.register).toHaveBeenCalledWith('test@example.com', 'password123', 'Test User');
+      });
+
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('token', 'new-token');
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith('user', JSON.stringify(mockUser));
+      expect(screen.getByTestId('user').textContent).toBe('test@example.com');
+    });
+
+    it('calls error handler on API failure', async () => {
+      const user = userEvent.setup();
+      const { authApi } = await import('../lib/api');
+      (authApi.register as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Email already exists'));
+
+      const queryClient = createTestQueryClient();
+      const onRegisterError = vi.fn();
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <TestConsumer onRegisterError={onRegisterError} />
+          </AuthProvider>
+        </QueryClientProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('loading').textContent).toBe('false');
+      });
+
+      await act(async () => {
+        await user.click(screen.getByRole('button', { name: 'Register' }));
+      });
+
+      await waitFor(() => {
+        expect(onRegisterError).toHaveBeenCalledWith(expect.any(Error));
+      });
+      
+      expect(onRegisterError.mock.calls[0][0].message).toBe('Email already exists');
+    });
   });
 });

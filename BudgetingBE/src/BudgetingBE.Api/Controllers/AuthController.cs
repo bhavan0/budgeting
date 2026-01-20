@@ -15,12 +15,106 @@ public class AuthController : ControllerBase
     private readonly IUnitOfWork _unitOfWork;
     private readonly IGoogleAuthService _googleAuthService;
     private readonly IJwtService _jwtService;
+    private readonly IPasswordService _passwordService;
 
-    public AuthController(IUnitOfWork unitOfWork, IGoogleAuthService googleAuthService, IJwtService jwtService)
+    public AuthController(
+        IUnitOfWork unitOfWork, 
+        IGoogleAuthService googleAuthService, 
+        IJwtService jwtService,
+        IPasswordService passwordService)
     {
         _unitOfWork = unitOfWork;
         _googleAuthService = googleAuthService;
         _jwtService = jwtService;
+        _passwordService = passwordService;
+    }
+
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest request, CancellationToken cancellationToken)
+    {
+        var email = request.Email.ToLowerInvariant();
+        var existingUser = await _unitOfWork.Users.GetByEmailAsync(email, cancellationToken);
+
+        if (existingUser != null)
+        {
+            // User exists with password already set
+            if (!string.IsNullOrEmpty(existingUser.PasswordHash))
+            {
+                return BadRequest(new { message = "Email already registered. Please sign in." });
+            }
+
+            // User exists via Google - link account by adding password
+            existingUser.PasswordHash = _passwordService.HashPassword(request.Password);
+            existingUser.Name = request.Name;
+            existingUser.UpdatedAt = DateTime.UtcNow;
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            var token = _jwtService.GenerateToken(existingUser);
+            return Ok(new AuthResponse
+            {
+                Token = token,
+                User = MapToUserDto(existingUser)
+            });
+        }
+
+        // Create new user
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Email = email,
+            PasswordHash = _passwordService.HashPassword(request.Password),
+            Name = request.Name,
+            ProfilePictureUrl = GetDefaultAvatarUrl(request.Name)
+        };
+
+        await _unitOfWork.Users.AddAsync(user, cancellationToken);
+
+        // Create default categories for new users
+        var defaultCategories = GetDefaultCategories(user.Id);
+        foreach (var category in defaultCategories)
+        {
+            await _unitOfWork.Categories.AddAsync(category, cancellationToken);
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var newUserToken = _jwtService.GenerateToken(user);
+        return Ok(new AuthResponse
+        {
+            Token = newUserToken,
+            User = MapToUserDto(user)
+        });
+    }
+
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
+    {
+        var email = request.Email.ToLowerInvariant();
+        var user = await _unitOfWork.Users.GetByEmailAsync(email, cancellationToken);
+
+        if (user == null)
+        {
+            return Unauthorized(new { message = "Invalid email or password" });
+        }
+
+        // User exists but has no password (Google-only account)
+        if (string.IsNullOrEmpty(user.PasswordHash))
+        {
+            return Unauthorized(new { message = "This account uses Google sign-in. Please sign in with Google." });
+        }
+
+        // Verify password
+        if (!_passwordService.VerifyPassword(request.Password, user.PasswordHash))
+        {
+            return Unauthorized(new { message = "Invalid email or password" });
+        }
+
+        var token = _jwtService.GenerateToken(user);
+        return Ok(new AuthResponse
+        {
+            Token = token,
+            User = MapToUserDto(user)
+        });
     }
 
     [HttpPost("google")]
@@ -80,13 +174,7 @@ public class AuthController : ControllerBase
         return Ok(new AuthResponse
         {
             Token = token,
-            User = new UserDto 
-            { 
-                Id = user.Id, 
-                Email = user.Email,
-                Name = user.Name,
-                ProfilePictureUrl = user.ProfilePictureUrl
-            }
+            User = MapToUserDto(user)
         });
     }
 
@@ -100,19 +188,27 @@ public class AuthController : ControllerBase
         var user = await _unitOfWork.Users.GetByIdAsync(userId.Value, cancellationToken);
         if (user == null) return NotFound();
 
-        return Ok(new UserDto 
-        { 
-            Id = user.Id, 
-            Email = user.Email,
-            Name = user.Name,
-            ProfilePictureUrl = user.ProfilePictureUrl
-        });
+        return Ok(MapToUserDto(user));
     }
 
     private Guid? GetUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         return Guid.TryParse(userIdClaim, out var userId) ? userId : null;
+    }
+
+    private static UserDto MapToUserDto(User user) => new()
+    {
+        Id = user.Id,
+        Email = user.Email,
+        Name = user.Name,
+        ProfilePictureUrl = user.ProfilePictureUrl
+    };
+
+    private static string GetDefaultAvatarUrl(string name)
+    {
+        var encoded = Uri.EscapeDataString(name);
+        return $"https://ui-avatars.com/api/?name={encoded}&background=6366f1&color=fff&size=128";
     }
 
     private static List<Category> GetDefaultCategories(Guid userId)
@@ -137,6 +233,30 @@ public class AuthController : ControllerBase
     }
 }
 
+public record RegisterRequest
+{
+    [Required]
+    [EmailAddress]
+    public required string Email { get; init; }
+    
+    [Required]
+    [MinLength(8, ErrorMessage = "Password must be at least 8 characters")]
+    public required string Password { get; init; }
+    
+    [Required]
+    public required string Name { get; init; }
+}
+
+public record LoginRequest
+{
+    [Required]
+    [EmailAddress]
+    public required string Email { get; init; }
+    
+    [Required]
+    public required string Password { get; init; }
+}
+
 public record GoogleLoginRequest
 {
     [Required]
@@ -156,3 +276,4 @@ public record UserDto
     public string? Name { get; init; }
     public string? ProfilePictureUrl { get; init; }
 }
+
