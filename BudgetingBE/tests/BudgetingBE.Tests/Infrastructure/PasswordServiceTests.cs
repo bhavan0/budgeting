@@ -1,4 +1,5 @@
 using BudgetingBE.Infrastructure.Services;
+using Xunit;
 
 namespace BudgetingBE.Tests.Infrastructure;
 
